@@ -1,0 +1,17 @@
+[package]
+name = "include_dir_as_map"
+version = "1.0.0"
+edition = "2021"
+authors = [ "fboulnois <fboulnois@users.noreply.github.com>" ]
+description = "Embed files from a directory as a hashmap in the rust binary"
+keywords = [ "macro", "include", "embed", "actix", "web", "static" ]
+categories = [ "web-programming", "filesystem" ]
+license = "MIT"
+
+[dependencies]
+proc_include_dir_as_map = { path = "proc" }
+
+[workspace]
+members = [
+  "proc"
+]
