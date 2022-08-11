@@ -1,0 +1,10 @@
+[package]
+name = "example-actix-web"
+version = "0.0.0"
+edition = "2021"
+authors = [ "fboulnois <fboulnois@users.noreply.github.com>" ]
+publish = false
+
+[dependencies]
+actix-web = "4"
+include_dir_as_map = { path = "../../" }
