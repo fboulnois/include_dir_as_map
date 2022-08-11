@@ -1,0 +1,9 @@
+[package]
+name = "example-hello-world"
+version = "0.0.0"
+edition = "2021"
+authors = [ "fboulnois <fboulnois@users.noreply.github.com>" ]
+publish = false
+
+[dependencies]
+include_dir_as_map = { path = "../../" }

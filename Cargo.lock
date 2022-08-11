@@ -3,6 +3,13 @@
 version = 3
 
 [[package]]
+name = "example-hello-world"
+version = "0.0.0"
+dependencies = [
+ "include_dir_as_map",
+]
+
+[[package]]
 name = "include_dir_as_map"
 version = "1.0.0"
 dependencies = [

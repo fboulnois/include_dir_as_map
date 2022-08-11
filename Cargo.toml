@@ -13,5 +13,6 @@ proc_include_dir_as_map = { path = "proc" }
 
 [workspace]
 members = [
-  "proc"
+  "proc",
+  "examples/*"
 ]
