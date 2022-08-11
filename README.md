@@ -37,3 +37,21 @@ See the `examples/` directory for more examples:
 
 * [Hello World](examples/example-hello-world)
 * [Actix Web](examples/example-actix-web)
+
+## Development
+
+### Building
+
+To build the library and examples:
+
+```sh
+cargo build --workspace
+```
+
+### Testing
+
+To test the library and procedural macro:
+
+```sh
+cargo test --workspace
+```
