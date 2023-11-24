@@ -141,6 +141,34 @@ fn internal_dir_as_map(input: TokenStream) -> TokenStream {
     output.into()
 }
 
+/// The procedural macro magic that embeds files from a directory into the rust
+/// binary as a hashmap.
+///
+/// The input must be a string literal that represents the directory to embed.
+/// This string can contain environment variables which will be expanded at
+/// compile time.
+///
+/// The output is a `DirMap` which is an alias for `HashMap<String, Vec<u8>>`.
+/// This hashmap maps the relative path of each file to its contents as a vector
+/// of bytes.
+///
+/// By default, the files are read from the filesystem at runtime in debug mode
+/// for compilation speed. To override this behavior, enable the `always-embed`
+/// feature in `Cargo.toml`.
+///
+/// # Panics
+///
+/// This function will panic if the directory does not exist or if any file in
+/// the directory cannot be read.
+///
+/// # Examples
+///
+/// ```ignore
+/// use include_dir_as_map::{include_dir_as_map, DirMap};
+///
+/// let dirmap: DirMap = include_dir_as_map!("$CARGO_MANIFEST_DIR");
+/// let bytes = dirmap.get("Cargo.toml")?;
+/// ```
 #[proc_macro]
 pub fn include_dir_as_map(input: TokenStream) -> TokenStream {
     internal_dir_as_map(input)
