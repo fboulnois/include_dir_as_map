@@ -13,6 +13,9 @@ license = "MIT"
 [dependencies]
 proc_include_dir_as_map = { version = "1", path = "proc" }
 
+[features]
+always-embed = [ "proc_include_dir_as_map/always-embed" ]
+
 [workspace]
 members = [
   "proc",
