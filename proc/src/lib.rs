@@ -10,8 +10,10 @@ use std::{
 use proc_macro::TokenStream;
 use quote::quote;
 
+#[allow(dead_code)]
 type DirMap = HashMap<String, Vec<u8>>;
 
+#[allow(dead_code)]
 fn file_to_bytes(path: &Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let mut data = Vec::new();
     let mut file = File::open(path)?;
@@ -19,12 +21,13 @@ fn file_to_bytes(path: &Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     Ok(data)
 }
 
+#[allow(dead_code)]
 fn dir_to_map(root: &Path, base: &Path) -> Result<DirMap, Box<dyn std::error::Error>> {
     let mut paths = HashMap::new();
     for entry in std::fs::read_dir(base)? {
         let entry = entry?;
         let path = entry.path();
-        let metadata = std::fs::metadata(path.clone())?;
+        let metadata = std::fs::metadata(&path)?;
         if metadata.is_file() {
             let data = file_to_bytes(&path)?;
             let rel = path.strip_prefix(root)?.to_str().unwrap();
@@ -69,8 +72,8 @@ fn strip_quotes(tokens: TokenStream) -> String {
     raw
 }
 
-#[proc_macro]
-pub fn include_dir_as_map(input: TokenStream) -> TokenStream {
+#[cfg(any(not(debug_assertions), feature = "always-embed"))]
+fn internal_dir_as_map(input: TokenStream) -> TokenStream {
     let raw = strip_quotes(input);
     let root = env_expand_dir(&raw);
     let data =
@@ -88,6 +91,59 @@ pub fn include_dir_as_map(input: TokenStream) -> TokenStream {
     };
 
     output.into()
+}
+
+#[cfg(all(debug_assertions, not(feature = "always-embed")))]
+fn internal_dir_as_map(input: TokenStream) -> TokenStream {
+    let raw = strip_quotes(input);
+    let root = env_expand_dir(&raw);
+    let root = root
+        .to_str()
+        .unwrap_or_else(|| panic!("{:?} cannot be converted to utf-8", root));
+
+    let output = quote! {
+        {
+            use std::{
+                collections::HashMap,
+                fs::File,
+                io::Read,
+                path::Path
+            };
+            fn file_to_bytes(path: &Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+                let mut data = Vec::new();
+                let mut file = File::open(path)?;
+                file.read_to_end(&mut data)?;
+                Ok(data)
+            }
+            fn dir_to_map(root: &Path, base: &Path) -> Result<DirMap, Box<dyn std::error::Error>> {
+                let mut paths = HashMap::new();
+                for entry in std::fs::read_dir(base)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    let metadata = std::fs::metadata(&path)?;
+                    if metadata.is_file() {
+                        let data = file_to_bytes(&path)?;
+                        let rel = path.strip_prefix(root)?.to_str().unwrap();
+                        paths.insert(rel.to_string(), data);
+                    } else if metadata.is_dir() {
+                        let dirmap = dir_to_map(root, &path)?;
+                        paths.extend(dirmap);
+                    } else {
+                        panic!("{:?} is not a file or directory", entry);
+                    }
+                }
+                Ok(paths)
+            }
+            dir_to_map(Path::new(#root), Path::new(#root)).unwrap_or_else(|_| panic!("{:?} contains invalid entries", #root))
+        }
+    };
+
+    output.into()
+}
+
+#[proc_macro]
+pub fn include_dir_as_map(input: TokenStream) -> TokenStream {
+    internal_dir_as_map(input)
 }
 
 #[cfg(test)]
