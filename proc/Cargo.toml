@@ -1,6 +1,6 @@
 [package]
 name = "proc_include_dir_as_map"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 authors = [ "fboulnois <fboulnois@users.noreply.github.com>" ]
 description = "Magic which implements the procedural macro `include_dir_as_map`"
