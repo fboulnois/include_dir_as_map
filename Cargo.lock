@@ -545,7 +545,7 @@ dependencies = [
 
 [[package]]
 name = "include_dir_as_map"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "proc_include_dir_as_map",
 ]
@@ -752,7 +752,7 @@ dependencies = [
 
 [[package]]
 name = "proc_include_dir_as_map"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
