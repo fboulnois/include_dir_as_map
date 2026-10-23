@@ -1,30 +1,23 @@
 #![forbid(unsafe_code)]
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use proc_macro::TokenStream;
 use quote::quote;
 
 #[allow(dead_code)]
-type DirMap = HashMap<String, Vec<u8>>;
-
-#[allow(dead_code)]
-fn dir_to_map(root: &Path, base: &Path) -> Result<DirMap, Box<dyn std::error::Error>> {
-    let mut paths = HashMap::new();
+fn dir_to_paths(root: &Path, base: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    let mut paths = Vec::new();
     for entry in std::fs::read_dir(base)? {
         let entry = entry?;
         let path = entry.path();
         let metadata = std::fs::metadata(&path)?;
         if metadata.is_file() {
-            let data = std::fs::read(&path)?;
             let rel = path.strip_prefix(root)?.to_str().unwrap();
-            paths.insert(rel.to_string(), data);
+            paths.push(rel.to_string());
         } else if metadata.is_dir() {
-            let dirmap = dir_to_map(root, &path)?;
-            paths.extend(dirmap);
+            let subpaths = dir_to_paths(root, &path)?;
+            paths.extend(subpaths);
         } else {
             panic!("{:?} is not a file or directory", entry);
         }
@@ -66,10 +59,11 @@ fn strip_quotes(tokens: TokenStream) -> String {
 fn internal_dir_as_map(input: TokenStream) -> TokenStream {
     let raw = strip_quotes(input);
     let root = env_expand_dir(&raw);
-    let data =
-        dir_to_map(&root, &root).unwrap_or_else(|_| panic!("{:?} contains invalid entries", root));
+    let mut paths = dir_to_paths(&root, &root)
+        .unwrap_or_else(|_| panic!("{:?} contains invalid entries", root));
+    paths.sort();
 
-    let it = data.keys().map(|k| {
+    let it = paths.iter().map(|k| {
         let path = root.join(k);
         let path = path.to_str().unwrap();
         quote! { (String::from(#k), include_bytes!(#path).to_vec()) }
@@ -159,14 +153,14 @@ mod tests {
     #[test]
     fn valid_dir() {
         let root = Path::new(".");
-        let _data = dir_to_map(root, root).unwrap();
+        let _paths = dir_to_paths(root, root).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn invalid_dir() {
         let root = Path::new("invalid_path_for_testing");
-        let _data = dir_to_map(root, root).unwrap();
+        let _paths = dir_to_paths(root, root).unwrap();
     }
 
     #[test]
