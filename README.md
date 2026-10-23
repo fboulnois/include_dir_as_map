@@ -41,6 +41,9 @@ in `Cargo.toml`:
 include_dir_as_map={ version="1", features=[ "always-embed" ] }
 ```
 
+To rebuild embedded files when the directory changes, add
+`println!("cargo:rerun-if-changed=<dir>");` to your crate's `build.rs`.
+
 ## Examples
 
 See the `examples/` directory for more examples:

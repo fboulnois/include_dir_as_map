@@ -128,6 +128,9 @@ fn internal_dir_as_map(input: TokenStream) -> TokenStream {
 /// for compilation speed. To override this behavior, enable the `always-embed`
 /// feature in `Cargo.toml`.
 ///
+/// To rebuild embedded files when the directory changes, add
+/// `println!("cargo:rerun-if-changed=<dir>");` to your crate's `build.rs`.
+///
 /// # Panics
 ///
 /// This function will panic if the directory does not exist or if any file in
