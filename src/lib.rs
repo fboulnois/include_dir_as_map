@@ -1,5 +1,4 @@
 #![forbid(unsafe_code)]
-
 #![doc = include_str!("../README.md")]
 
 use std::collections::HashMap;
@@ -16,6 +15,7 @@ mod tests {
     #[test]
     fn valid_macro_call() {
         let dirmap: DirMap = include_dir_as_map!("$CARGO_MANIFEST_DIR/src");
-        let _bytes = dirmap.get("lib.rs").unwrap();
+        let bytes = dirmap.get("lib.rs").unwrap();
+        assert_eq!(bytes, include_bytes!("lib.rs"));
     }
 }

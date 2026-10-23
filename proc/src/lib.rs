@@ -79,11 +79,10 @@ fn internal_dir_as_map(input: TokenStream) -> TokenStream {
     let data =
         dir_to_map(&root, &root).unwrap_or_else(|_| panic!("{:?} contains invalid entries", root));
 
-    let it = data.iter().map(|(k, v)| {
-        let u = v.iter();
-        quote! {
-            (String::from(#k), Vec::from([ #( #u ),* ]))
-        }
+    let it = data.keys().map(|k| {
+        let path = root.join(k);
+        let path = path.to_str().unwrap();
+        quote! { (String::from(#k), include_bytes!(#path).to_vec()) }
     });
 
     let output = quote! {
