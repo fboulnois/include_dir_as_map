@@ -59,6 +59,8 @@ fn strip_quotes(tokens: TokenStream) -> String {
 fn internal_dir_as_map(input: TokenStream) -> TokenStream {
     let raw = strip_quotes(input);
     let root = env_expand_dir(&raw);
+    root.to_str()
+        .unwrap_or_else(|| panic!("{:?} cannot be converted to utf-8", root));
     let mut paths = dir_to_paths(&root, &root)
         .unwrap_or_else(|_| panic!("{:?} contains invalid entries", root));
     paths.sort();
