@@ -2,8 +2,6 @@
 
 use std::{
     collections::HashMap,
-    fs::File,
-    io::Read,
     path::{Path, PathBuf},
 };
 
@@ -14,14 +12,6 @@ use quote::quote;
 type DirMap = HashMap<String, Vec<u8>>;
 
 #[allow(dead_code)]
-fn file_to_bytes(path: &Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    let mut data = Vec::new();
-    let mut file = File::open(path)?;
-    file.read_to_end(&mut data)?;
-    Ok(data)
-}
-
-#[allow(dead_code)]
 fn dir_to_map(root: &Path, base: &Path) -> Result<DirMap, Box<dyn std::error::Error>> {
     let mut paths = HashMap::new();
     for entry in std::fs::read_dir(base)? {
@@ -29,7 +19,7 @@ fn dir_to_map(root: &Path, base: &Path) -> Result<DirMap, Box<dyn std::error::Er
         let path = entry.path();
         let metadata = std::fs::metadata(&path)?;
         if metadata.is_file() {
-            let data = file_to_bytes(&path)?;
+            let data = std::fs::read(&path)?;
             let rel = path.strip_prefix(root)?.to_str().unwrap();
             paths.insert(rel.to_string(), data);
         } else if metadata.is_dir() {
@@ -102,18 +92,7 @@ fn internal_dir_as_map(input: TokenStream) -> TokenStream {
 
     let output = quote! {
         {
-            use std::{
-                collections::HashMap,
-                fs::File,
-                io::Read,
-                path::Path
-            };
-            fn file_to_bytes(path: &Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-                let mut data = Vec::new();
-                let mut file = File::open(path)?;
-                file.read_to_end(&mut data)?;
-                Ok(data)
-            }
+            use std::{collections::HashMap, path::Path};
             fn dir_to_map(root: &Path, base: &Path) -> Result<DirMap, Box<dyn std::error::Error>> {
                 let mut paths = HashMap::new();
                 for entry in std::fs::read_dir(base)? {
@@ -121,7 +100,7 @@ fn internal_dir_as_map(input: TokenStream) -> TokenStream {
                     let path = entry.path();
                     let metadata = std::fs::metadata(&path)?;
                     if metadata.is_file() {
-                        let data = file_to_bytes(&path)?;
+                        let data = std::fs::read(&path)?;
                         let rel = path.strip_prefix(root)?.to_str().unwrap();
                         paths.insert(rel.to_string(), data);
                     } else if metadata.is_dir() {
