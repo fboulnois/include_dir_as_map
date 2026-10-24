@@ -25,23 +25,44 @@ fn dir_to_paths(root: &Path, base: &Path) -> Result<Vec<String>, Box<dyn std::er
     Ok(paths)
 }
 
-fn env_expand_dir(raw: &str) -> PathBuf {
+#[derive(Debug, PartialEq)]
+enum Segment<'a> {
+    Lit(&'a str),
+    Var(&'a str),
+}
+
+fn split_vars(raw: &str) -> Vec<Segment<'_>> {
     let mut copy = raw;
-    let mut root = String::new();
+    let mut segments = Vec::new();
     while let Some(pos) = copy.find('$') {
         let (head, tail) = copy.split_at(pos);
         let token = &tail[1..];
         let end = token
             .find(|ch: char| !ch.is_alphanumeric() && ch != '_')
             .unwrap_or(token.len());
-        let env = &token[..end];
-        let val = std::env::var(env)
-            .unwrap_or_else(|_| panic!("{:?} is not a valid environment variable", env));
-        copy = token.strip_prefix(env).unwrap();
-        root.push_str(head);
-        root.push_str(&val);
+        if !head.is_empty() {
+            segments.push(Segment::Lit(head));
+        }
+        segments.push(Segment::Var(&token[..end]));
+        copy = &token[end..];
     }
-    root.push_str(copy);
+    if !copy.is_empty() {
+        segments.push(Segment::Lit(copy));
+    }
+    segments
+}
+
+fn env_expand_dir(raw: &str) -> PathBuf {
+    let mut root = String::new();
+    for segment in split_vars(raw) {
+        match segment {
+            Segment::Lit(s) => root.push_str(s),
+            Segment::Var(v) => root.push_str(
+                &std::env::var(v)
+                    .unwrap_or_else(|_| panic!("{:?} is not a valid environment variable", v)),
+            ),
+        }
+    }
     std::fs::canonicalize(&root).unwrap_or_else(|_| panic!("{:?} is not a valid directory", root))
 }
 
@@ -169,23 +190,59 @@ mod tests {
     }
 
     #[test]
+    fn split_no_vars() {
+        assert_eq!(split_vars("a/b"), vec![Segment::Lit("a/b")]);
+        assert_eq!(split_vars(""), vec![]);
+    }
+
+    #[test]
+    fn split_single_var() {
+        assert_eq!(split_vars("$A_1"), vec![Segment::Var("A_1")]);
+    }
+
+    #[test]
+    fn split_mixed() {
+        use Segment::*;
+        assert_eq!(
+            split_vars("pre/$A/$B_2/post"),
+            vec![Lit("pre/"), Var("A"), Lit("/"), Var("B_2"), Lit("/post")]
+        );
+    }
+
+    #[test]
+    fn split_adjacent_vars() {
+        use Segment::*;
+        assert_eq!(split_vars("$A$B"), vec![Var("A"), Var("B")]);
+    }
+
+    #[test]
     fn valid_env_var() {
         let path = env_expand_dir("$CARGO_MANIFEST_DIR");
-        let ok = path.ends_with("proc");
-        assert_eq!(ok, true);
+        let expected = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .canonicalize()
+            .unwrap();
+        assert_eq!(path, expected);
     }
 
     #[test]
-    fn valid_env_var_2() {
-        std::env::set_var("SRC_DIR", "src");
-        let path = env_expand_dir("$CARGO_MANIFEST_DIR/$SRC_DIR");
-        let ok = path.ends_with("src");
-        assert_eq!(ok, true);
+    fn valid_env_var_with_suffix() {
+        let path = env_expand_dir("$CARGO_MANIFEST_DIR/src");
+        let expected = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .canonicalize()
+            .unwrap();
+        assert_eq!(path, expected);
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected = "is not a valid environment variable")]
     fn invalid_env_var() {
         let _path = env_expand_dir("$INVALID_ENV_VAR_FOR_TESTING");
+    }
+
+    #[test]
+    #[should_panic(expected = "is not a valid directory")]
+    fn invalid_expanded_dir() {
+        let _path = env_expand_dir("$CARGO_MANIFEST_DIR/invalid_path_for_testing");
     }
 }
