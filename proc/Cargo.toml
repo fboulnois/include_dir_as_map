@@ -2,6 +2,7 @@
 name = "proc_include_dir_as_map"
 version = "1.2.0"
 edition = "2024"
+rust-version = "1.85"
 authors = [ "fboulnois <fboulnois@users.noreply.github.com>" ]
 description = "Magic which implements the procedural macro `include_dir_as_map`"
 readme = "README.md"
